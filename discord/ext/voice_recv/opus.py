@@ -146,7 +146,10 @@ class PacketDecoder:
             member = self._get_cached_member()
 
         if has_dave and not packet.is_silence() and packet.decrypted_data is not None and self.vc._connection.dave_session is not None and self.vc._connection.dave_session.ready:
-            packet.decrypted_data = self.vc._connection.dave_session.decrypt(member.id, MediaType.audio, packet.decrypted_data)  # type: ignore
+            try:
+                packet.decrypted_data = self.vc._connection.dave_session.decrypt(member.id, MediaType.audio, packet.decrypted_data)  # type: ignore
+            except Exception as e:
+                log.debug(f"DAVE decryption failed (packet may already be plain): {e}")
 
         if not self.sink.wants_opus():
             packet, pcm = self._decode_packet(packet)

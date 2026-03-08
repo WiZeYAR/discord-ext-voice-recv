@@ -145,9 +145,10 @@ class PacketDecoder:
             self._cached_id = self.sink.voice_client._get_id_from_ssrc(self.ssrc)  # type: ignore
             member = self._get_cached_member()
 
-        if has_dave and not packet.is_silence() and packet.decrypted_data is not None and self.vc._connection.dave_session is not None and self.vc._connection.dave_session.ready:
+        if has_dave and member is not None and not packet.is_silence() and packet.decrypted_data is not None and self.vc._connection.dave_session is not None and self.vc._connection.dave_session.ready:
             try:
                 packet.decrypted_data = self.vc._connection.dave_session.decrypt(member.id, MediaType.audio, packet.decrypted_data)  # type: ignore
+                log.debug(f"DAVE decrypted packet for member {member.id}")
             except Exception as e:
                 log.debug(f"DAVE decryption failed (packet may already be plain): {e}")
 

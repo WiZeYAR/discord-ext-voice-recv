@@ -11,7 +11,6 @@ from .rtp import FakePacket
 from .utils import add_wrapped
 
 from discord.opus import Decoder
-from davey import MediaType
 
 if TYPE_CHECKING:
     from typing import Optional, Tuple, Dict, Callable, Any
@@ -41,7 +40,6 @@ class VoiceData:
         self.source: Optional[User] = source
         self.pcm: bytes = pcm if pcm else b''
 
-    @property
     def opus(self) -> Optional[bytes]:
         return self.packet.decrypted_data
 
@@ -56,7 +54,6 @@ class PacketDecoder:
         self._cached_id: Optional[int] = None
 
         self.vc: VoiceRecvClient = self.sink.voice_client
-        self.vc._connection.dave_session.set_passthrough_mode(True, 10)
 
         self._last_seq: int = -1
         self._last_ts: int = -1
@@ -143,7 +140,6 @@ class PacketDecoder:
             member = self._get_cached_member()
 
         #DAVE Decrypt
-        packet.decrypted_data = self.vc._connection.dave_session.decrypt(member.id, MediaType.audio, bytes(packet.decrypted_data))
 
         if not self.sink.wants_opus():
             packet, pcm = self._decode_packet(packet)

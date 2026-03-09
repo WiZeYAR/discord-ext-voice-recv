@@ -145,10 +145,26 @@ class PacketDecoder:
             self._cached_id = self.sink.voice_client._get_id_from_ssrc(self.ssrc)  # type: ignore
             member = self._get_cached_member()
 
-        if has_dave and member is not None and not packet.is_silence() and packet.decrypted_data is not None and self.vc._connection.dave_session is not None and self.vc._connection.dave_session.ready:
+        silence = packet.is_silence()
+        dave_available = False
+        if has_dave and member is not None and not silence and packet.decrypted_data is not None:
+            if self.vc._connection.dave_session is not None and self.vc._connection.dave_session.ready:
+                dave_available = True
+
+        data_len = len(packet.decrypted_data) if packet.decrypted_data else 0
+        dave_session_exists = self.vc._connection.dave_session is not None
+        dave_session_ready = self.vc._connection.dave_session.ready if dave_session_exists else False  # type: ignore
+        member_id = member.id if member else None
+        log.debug(f"DAVE DEBUG: has_dave={has_dave}, member={member_id}, silence={silence}, data_len={data_len}, dave_session={dave_session_exists}, ready={dave_session_ready}, will_decrypt={dave_available}")
+
+        if dave_available:
             try:
+                before_hex = packet.decrypted_data[:16].hex() if packet.decrypted_data is not None and len(packet.decrypted_data) >= 16 else (packet.decrypted_data.hex() if packet.decrypted_data else "None")
+                log.debug(f"DAVE BEFORE: {before_hex}")
                 packet.decrypted_data = self.vc._connection.dave_session.decrypt(member.id, MediaType.audio, packet.decrypted_data)  # type: ignore
-                log.debug(f"DAVE decrypted packet for member {member.id}")
+                after_hex = packet.decrypted_data[:16].hex() if packet.decrypted_data is not None and len(packet.decrypted_data) >= 16 else (packet.decrypted_data.hex() if packet.decrypted_data else "None")
+                log.debug(f"DAVE AFTER: {after_hex}")
+                log.debug(f"DAVE decrypted packet for member {member.id}")  # type: ignore
             except Exception as e:
                 log.debug(f"DAVE decryption failed (packet may already be plain): {e}")
 

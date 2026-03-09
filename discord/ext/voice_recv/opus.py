@@ -151,9 +151,17 @@ class PacketDecoder:
 
         silence = packet.is_silence()
         dave_available = False
+
         if has_dave and member is not None and not silence and packet.decrypted_data is not None:
             if self.vc._connection.dave_session is not None and self.vc._connection.dave_session.ready:
                 dave_available = True
+
+                try:
+                    if self.vc._connection.dave_session.can_passthrough():
+                        log.debug(f"DAVE passthrough mode active - skipping decryption")
+                        dave_available = False
+                except AttributeError:
+                    pass
 
         data_len = len(packet.decrypted_data) if packet.decrypted_data else 0
         dave_session_exists = self.vc._connection.dave_session is not None

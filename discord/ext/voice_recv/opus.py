@@ -166,7 +166,10 @@ class PacketDecoder:
                 log.debug(f"DAVE AFTER: {after_hex}")
                 log.debug(f"DAVE decrypted packet for member {member.id}")  # type: ignore
             except Exception as e:
-                log.debug(f"DAVE decryption failed (packet may already be plain): {e}")
+                if "UnencryptedWhenPassthroughDisabled" in str(e):
+                    log.debug(f"DAVE packet is already plain (not encrypted): {e}")
+                else:
+                    raise
 
         if not self.sink.wants_opus():
             packet, pcm = self._decode_packet(packet)

@@ -157,6 +157,14 @@ class PacketDecoder:
         member_id = member.id if member else None
         log.debug(f"DAVE DEBUG: has_dave={has_dave}, member={member_id}, silence={silence}, data_len={data_len}, dave_session={dave_session_exists}, ready={dave_session_ready}, will_decrypt={dave_available}")
 
+        # If member is None, we can't decrypt DAVE packets (needs member.id for key derivation)
+        # Skip decoding to prevent OpusError on encrypted data
+        # Gateway will send op 5 with SSRC->user mapping, subsequent packets will work
+        data = VoiceData(packet, None, pcm=b'')
+        self._last_seq = packet.sequence
+        self._last_ts = packet.timestamp
+        return data
+
         if dave_available:
             try:
                 before_hex = packet.decrypted_data[:16].hex() if packet.decrypted_data is not None and len(packet.decrypted_data) >= 16 else (packet.decrypted_data.hex() if packet.decrypted_data else "None")

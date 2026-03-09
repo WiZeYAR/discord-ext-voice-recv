@@ -145,6 +145,10 @@ class PacketDecoder:
             self._cached_id = self.sink.voice_client._get_id_from_ssrc(self.ssrc)  # type: ignore
             member = self._get_cached_member()
 
+        if member is None:
+            log.debug(f"Skipping packet for SSRC {packet.ssrc} - no member mapping yet")
+            return VoiceData(packet, None, pcm=b'')
+
         silence = packet.is_silence()
         dave_available = False
         if has_dave and member is not None and not silence and packet.decrypted_data is not None:
@@ -156,14 +160,6 @@ class PacketDecoder:
         dave_session_ready = self.vc._connection.dave_session.ready if dave_session_exists else False  # type: ignore
         member_id = member.id if member else None
         log.debug(f"DAVE DEBUG: has_dave={has_dave}, member={member_id}, silence={silence}, data_len={data_len}, dave_session={dave_session_exists}, ready={dave_session_ready}, will_decrypt={dave_available}")
-
-        # If member is None, we can't decrypt DAVE packets (needs member.id for key derivation)
-        # Skip decoding to prevent OpusError on encrypted data
-        # Gateway will send op 5 with SSRC->user mapping, subsequent packets will work
-        data = VoiceData(packet, None, pcm=b'')
-        self._last_seq = packet.sequence
-        self._last_ts = packet.timestamp
-        return data
 
         if dave_available:
             try:
